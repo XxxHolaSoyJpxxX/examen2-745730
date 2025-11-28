@@ -25,7 +25,20 @@ const TABLE_NOTA_CONTENIDO = process.env.TABLE_NOTA_CONTENIDO || "NotaContenido"
 // NOTA: Usamos Scan, se recomienda usar GSI en producción para estas búsquedas.
 // =======================================================
 
-
+const lookupByAttribute = async (tableName, attributeName, attributeValue) => {
+  const { Items } = await db.send(new ScanCommand({
+    TableName: tableName,
+    FilterExpression: "#attr = :val",
+    ExpressionAttributeNames: {
+      "#attr": attributeName
+    },
+    ExpressionAttributeValues: {
+      ":val": attributeValue
+    },
+    Limit: 1
+  }));
+  return Items[0];
+};
 
 export const checkIfRfcOrEmailExists = async (rfc, email) => {
   const { Items } = await db.send(new ScanCommand({
@@ -36,8 +49,7 @@ export const checkIfRfcOrEmailExists = async (rfc, email) => {
 };
 
 export const checkIfProductNameExists = async (nombre) => {
-  const existingItem = await lookupByAttribute(TABLE_PRODUCTOS, "nombre", nombre);
-  return existingItem;
+  return await lookupByAttribute(TABLE_PRODUCTOS, 'nombre', nombre);
 };
 
 export const checkIfDomicilioExists = async (clienteId, tipoDireccion) => {

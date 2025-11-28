@@ -66,7 +66,7 @@ export const clientesHandler = async (event) => {
 						return {
 							statusCode: 409, // Conflict
 							body: JSON.stringify({
-								error: `El cliente ya existe. El campo '${duplicado.campo}' ya está registrado.`,
+								error: `El cliente ya existe`,
 								idExistente: duplicado.id
 							})
 						};
