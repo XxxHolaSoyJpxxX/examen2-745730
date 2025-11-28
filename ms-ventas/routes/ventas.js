@@ -9,7 +9,7 @@ import {
 import { uploadFile, updateMetadata, getFile, getMetadata } from "../utils/s3.js"; // Se agregó getMetadata
 import { publicarEvento } from "../utils/sns.js"; // Asumo que usas publicarEvento de nuestra conversación
 import { generarID } from "../utils/id.js";
-import { generarPDF } from "../utils/pdf_genrator.js";
+import { generarPDF } from "../utils/pdf_generator.js";
 // import { withObservability } from "../utils/metrics.js"; // Asumo que se envuelve en index.js
 
 const BUCKET = "examen-2-745730"; // Usamos el nombre de bucket que proporcionaste
