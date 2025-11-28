@@ -1,7 +1,7 @@
 import PDFDocument from 'pdfkit';
 import { PassThrough } from 'stream';
 
-// Función auxiliar para dibujar la línea de productos y totales
+// Función auxiliar para dibujar la tabla de productos y los totales
 const drawTable = (doc, data, y) => {
     doc.fontSize(10);
     let yPosition = y;
@@ -19,7 +19,7 @@ const drawTable = (doc, data, y) => {
 
     yPosition += 20;
 
-    // Items
+    // Items (Múltiples productos)
     for (const item of data.items) {
         doc.text(item.nombre, descriptionX, yPosition)
            .text(item.cantidad.toString(), quantityX, yPosition)
