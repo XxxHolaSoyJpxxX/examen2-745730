@@ -25,35 +25,19 @@ const TABLE_NOTA_CONTENIDO = process.env.TABLE_NOTA_CONTENIDO || "NotaContenido"
 // NOTA: Usamos Scan, se recomienda usar GSI en producción para estas búsquedas.
 // =======================================================
 
-const lookupByAttribute = async (tableName, attributeName, attributeValue) => {
-  const { Items } = await db.send(new ScanCommand({
-    TableName: tableName,
-    FilterExpression: "#attr = :val",
-    ExpressionAttributeNames: {
-      "#attr": attributeName
-    },
-    ExpressionAttributeValues: {
-      ":val": attributeValue
-    },
-    Limit: 1
-  }));
-  return Items[0];
-};
+
 
 export const checkIfRfcOrEmailExists = async (rfc, email) => {
-  // 1. Verificar por RFC
-  const existingRfc = await lookupByAttribute(TABLE_CLIENTES, 'rfc', rfc);
-  if (existingRfc) return { campo: 'rfc', id: existingRfc.id };
-
-  // 2. Verificar por Email
-  const existingEmail = await lookupByAttribute(TABLE_CLIENTES, 'email', email);
-  if (existingEmail) return { campo: 'email', id: existingEmail.id };
-
-  return null;
+  const { Items } = await db.send(new ScanCommand({
+    TableName: TABLE_CLIENTES
+  }));
+  const existingItems = Items?.filter(item => item.rfc === rfc || item.email === email);
+  return existingItems;
 };
 
 export const checkIfProductNameExists = async (nombre) => {
-  return await lookupByAttribute(TABLE_PRODUCTOS, 'nombre', nombre);
+  const existingItem = await lookupByAttribute(TABLE_PRODUCTOS, "nombre", nombre);
+  return existingItem;
 };
 
 export const checkIfDomicilioExists = async (clienteId, tipoDireccion) => {
