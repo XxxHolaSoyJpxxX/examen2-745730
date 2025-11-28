@@ -57,30 +57,77 @@ const drawTable = (doc, data, y) => {
 
 export const generarPDF = async (data) => {
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ margin: 50 });
+    const doc = new PDFDocument({ margin: 50, size: 'LETTER' });
     const stream = new PassThrough();
     const chunks = [];
     doc.pipe(stream);
     
-    // Cabecera
-    doc.fontSize(18).text('NOTA DE VENTA', { align: 'center' });
-    doc.moveDown();
-    doc.fontSize(12)
-       .text(`Folio: ${data.folio}`)
-       .text(`Fecha: ${new Date().toLocaleDateString()}`);
-    doc.moveDown();
+    // Cabecera con fondo
+    doc.fontSize(20)
+       .font('Helvetica-Bold')
+       .text('NOTA DE VENTA', { align: 'center' });
     
-    // Información del cliente
-    doc.text('Cliente:');
-    doc.text(`Razón Social: ${data.cliente.razonSocial || ''}`)
-       .text(`RFC: ${data.cliente.rfc || ''}`)
-       .text(`Correo: ${data.cliente.email || ''}`);
-    doc.moveDown();
+    doc.moveDown(0.5);
+    
+    // Línea decorativa
+    doc.strokeColor("#000000")
+       .lineWidth(2)
+       .moveTo(200, doc.y)
+       .lineTo(400, doc.y)
+       .stroke();
+    
+    doc.moveDown(1.5);
+    
+    // Información de la nota
+    doc.fontSize(11)
+       .font('Helvetica-Bold')
+       .text(`Folio: `, 50, doc.y, { continued: true })
+       .font('Helvetica')
+       .text(data.folio);
+    
+    doc.font('Helvetica-Bold')
+       .text(`Fecha: `, 50, doc.y, { continued: true })
+       .font('Helvetica')
+       .text(new Date().toLocaleDateString('es-MX', { 
+           year: 'numeric', 
+           month: 'long', 
+           day: 'numeric' 
+       }));
+    
+    doc.moveDown(1.5);
+    
+    // Información del cliente en un recuadro
+    const clienteY = doc.y;
+    doc.rect(50, clienteY, 500, 80)
+       .stroke();
+    
+    doc.fontSize(12)
+       .font('Helvetica-Bold')
+       .text('INFORMACIÓN DEL CLIENTE', 60, clienteY + 10);
+    
+    doc.fontSize(10)
+       .font('Helvetica')
+       .text(`Razón Social: ${data.cliente.razonSocial || 'N/A'}`, 60, clienteY + 30)
+       .text(`RFC: ${data.cliente.rfc || 'N/A'}`, 60, clienteY + 45)
+       .text(`Correo: ${data.cliente.email || 'N/A'}`, 60, clienteY + 60);
+    
+    doc.y = clienteY + 90;
+    doc.moveDown(1);
+    
+    // Título de productos
+    doc.fontSize(12)
+       .font('Helvetica-Bold')
+       .text('DETALLE DE PRODUCTOS', 50, doc.y);
+    
+    doc.moveDown(0.8);
     
     // Dibujar tabla de productos
-    doc.fontSize(14).text('Detalle de Productos:', 50, doc.y);
-    doc.moveDown();
     drawTable(doc, data, doc.y);
+    
+    // Footer
+    doc.fontSize(8)
+       .font('Helvetica')
+       .text('Gracias por su preferencia', { align: 'center' });
     
     doc.end();
     
