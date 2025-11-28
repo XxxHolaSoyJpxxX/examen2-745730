@@ -122,9 +122,12 @@
   "cliente": "PEGA_AQUI_ID_CLIENTE",
   "domicilioFacturacion": "PEGA_AQUI_ID_DOMICILIO_FACTURACION",
   "domicilioEnvio": "PEGA_AQUI_ID_DOMICILIO_ENVIO",
-  "producto": "PEGA_AQUI_ID_PRODUCTO",
-  "cantidad": 2,
-  "importe": 0
+  "items": [
+    { "productoId": "PEGA_AQUI_ID_PRODUCTO_1", "cantidad": 2 },
+    { "productoId": "PEGA_AQUI_ID_PRODUCTO_2", "cantidad": 1 },
+    { "productoId": "PEGA_AQUI_ID_PRODUCTO_3", "cantidad": 5 }
+  ],
+  "importe": 80.50
 }
 ```
 
