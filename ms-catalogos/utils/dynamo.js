@@ -57,21 +57,17 @@ export const checkIfProductNameExists = async (nombre) => {
 };
 
 export const checkIfDomicilioExists = async (clienteId, tipoDireccion) => {
-  // Busca si el cliente ya tiene una dirección de ese TIPO (Facturación/Envío)
+  // Obtener TODOS los domicilios y filtrar en memoria
   const { Items } = await db.send(new ScanCommand({
-    TableName: TABLE_DOMICILIOS,
-    FilterExpression: "#clienteId = :cId AND #tipoDireccion = :tDir",
-    ExpressionAttributeNames: {
-      "#clienteId": "clienteId",
-      "#tipoDireccion": "tipoDireccion"
-    },
-    ExpressionAttributeValues: {
-      ":cId": clienteId,
-      ":tDir": tipoDireccion
-    },
-    Limit: 1
+    TableName: TABLE_DOMICILIOS
   }));
-  return Items?.[0];
+  
+  // Filtrar manualmente en JavaScript
+  const domicilioExistente = Items?.find(item => 
+    item.clienteId === clienteId && item.tipoDireccion === tipoDireccion
+  );
+  
+  return domicilioExistente;
 };
 
 // =======================================================
