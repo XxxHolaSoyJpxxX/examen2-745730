@@ -7,11 +7,11 @@ import {
   obtenerDomicilio,
 } from "../utils/dynamo.js";
 import { uploadFile, updateMetadata, getFile, getMetadata } from "../utils/s3.js";
-import { enviarNotificacion } from "../utils/sns.js"; // <-- FIX: Importa el nombre que SÍ tiene el módulo
+import { enviarNotificacion } from "../utils/sns.js"; // <-- Sincronizado: el nombre del export es correcto
 import { generarID } from "../utils/id.js";
 import { generarPDF } from "../utils/pdf_generator.js";
 
-const BUCKET = "examen-2-745730"; 
+const BUCKET = "examen-2-745730"; // Usamos el bucket del usuario
 
 const CAMPOS_VENTA = [
   "cliente",
@@ -137,11 +137,11 @@ const coreVentasHandler = async (event) => {
             await uploadFile(BUCKET, key, pdfBuffer);
 
             // 6. Notificar (SNS) - URL CORREGIDA
-            // La IP la obtendremos del host de la petición.
-            const host = event.get('host') || '3.239.55.131:3002'; 
+            // La IP la obtendremos del host de la petición. FIX DE LA LÍNEA 141 DE TU LOG
+            const host = event.get('host') || '3.239.55.131:3002'; // <-- FIX: Usamos el método 'get' del objeto request
             const rutaDescarga = `http://${host}/ventas/${notaId}`; 
 
-            await enviarNotificacion(clienteData.email, folio, rutaDescarga); // <-- LLAMADA CORRECTA
+            await enviarNotificacion(clienteData.email, folio, rutaDescarga); 
 
             return { statusCode: 201, body: JSON.stringify({ notaId, folio, subtotal: subtotalProductos, impuestos: impuestos, total: totalVenta, mensaje: "Nota de venta procesada." }) };
         }

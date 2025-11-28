@@ -1,13 +1,13 @@
 import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
 
 const snsClient = new SNSClient({ region: "us-east-1" });
-// Usamos el ARN de tu tema Estándar (corregido en la conversación)
+// Usamos el ARN de tu tema Estándar (asumo que corregiste el FIFO)
 const TOPIC_ARN = "arn:aws:sns:us-east-1:187758670772:NotificacionesVentas"; 
 
 
 export const enviarNotificacion = async (email, folio, ruta) => {
   try {
-    // El mensaje ahora debe ser el objeto que el MS-Notificaciones espera (JSON)
+    // El mensaje debe ser un objeto JSON para que el microservicio lo parseé
     const mensaje = {
         tipo: "VENTA_CREADA",
         email: email,
