@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  catalogos:
+    build: ./ms-catalogos
+    image: ms-catalogos:latest
+    ports:
+      - "3001:8080"
+    environment:
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}
+      - TABLE_CLIENTES=Clientes-Prod
+      - TABLE_PRODUCTOS=Productos-Prod
+      - TABLE_DOMICILIOS=Domicilios-Prod
+      - ENVIRONMENT=PROD
+      - SERVICE_NAME=CatalogosService
+
+  ventas:
+    build: ./ms-ventas
+    image: ms-ventas:latest
+    ports:
+      - "3002:8080"
+    environment:
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}
+      - TABLE_CLIENTES=Clientes-Prod
+      - TABLE_PRODUCTOS=Productos-Prod
+      - TABLE_DOMICILIOS=Domicilios-Prod
+      - TABLE_NOTAS_VENTA=NotasVenta-Prod
+      - TABLE_NOTA_CONTENIDO=NotaContenido-Prod
+      - BUCKET_NAME=TU_BUCKET_AQUI  # <--- PON TU BUCKET
+      - SNS_TOPIC_NOTIFICACIONES=arn:aws:sns:us-east-1:TU_CUENTA:NotificacionesVentas # <--- PON TU ARN SNS
+      - ENVIRONMENT=PROD
+      - SERVICE_NAME=VentasService
+
+  notificaciones:
+    build: ./ms-notificaciones
+    image: ms-notificaciones:latest
+    ports:
+      - "3003:8080"
+    environment:
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}
+      - EMAIL_REMITENTE=tu_email@ejemplo.com # <--- PON TU EMAIL
+      - SIMULATE_EMAIL=true
+      - ENVIRONMENT=PROD
+      - SERVICE_NAME=NotificacionesService

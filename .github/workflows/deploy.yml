@@ -1,0 +1,125 @@
+name: Deploy Multi-Container to Amazon Linux
+
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build and Push Docker Images
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          docker build -t $ECR_REGISTRY/ms-catalogos:latest ./ms-catalogos
+          docker push $ECR_REGISTRY/ms-catalogos:latest
+          
+          docker build -t $ECR_REGISTRY/ms-ventas:latest ./ms-ventas
+          docker push $ECR_REGISTRY/ms-ventas:latest
+          
+          docker build -t $ECR_REGISTRY/ms-notificaciones:latest ./ms-notificaciones
+          docker push $ECR_REGISTRY/ms-notificaciones:latest
+
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v0.1.6
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: ECR_REGISTRY,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_SESSION_TOKEN,AWS_REGION
+          script: |
+            # 1. Instalar Docker en Amazon Linux (si no existe)
+            if ! command -v docker &> /dev/null; then
+                sudo yum update -y
+                sudo yum install -y docker
+                sudo service docker start
+                sudo usermod -a -G docker ec2-user
+            fi
+            
+            # 2. Login en ECR
+            aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+            aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+            aws configure set aws_session_token $AWS_SESSION_TOKEN
+            aws configure set region $AWS_REGION
+            
+            aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+            
+            export ECR_REGISTRY=$ECR_REGISTRY
+            
+            # 3. Preparar carpeta
+            mkdir -p app-ventas
+            cd app-ventas
+            
+            # 4. Crear docker-compose (Con tus datos actualizados)
+            cat <<EOF > docker-compose.yml
+            version: '3.8'
+            services:
+              catalogos:
+                image: $ECR_REGISTRY/ms-catalogos:latest
+                ports: ["3001:8080"]
+                environment:
+                  - AWS_REGION=us-east-1
+                  - TABLE_CLIENTES=Clientes-Prod
+                  - TABLE_PRODUCTOS=Productos-Prod
+                  - TABLE_DOMICILIOS=Domicilios-Prod
+                  - ENVIRONMENT=PROD
+                  - SERVICE_NAME=CatalogosService
+
+              ventas:
+                image: $ECR_REGISTRY/ms-ventas:latest
+                ports: ["3002:8080"]
+                environment:
+                  - AWS_REGION=us-east-1
+                  - TABLE_CLIENTES=Clientes-Prod
+                  - TABLE_PRODUCTOS=Productos-Prod
+                  - TABLE_DOMICILIOS=Domicilios-Prod
+                  - TABLE_NOTAS_VENTA=NotasVenta-Prod
+                  - TABLE_NOTA_CONTENIDO=NotaContenido-Prod
+                  # TUS DATOS:
+                  - BUCKET_NAME=examen-2-745730
+                  - SNS_TOPIC_NOTIFICACIONES=arn:aws:sns:us-east-1:187758670772:NotificacionesVentas
+                  - ENVIRONMENT=PROD
+                  - SERVICE_NAME=VentasService
+
+              notificaciones:
+                image: $ECR_REGISTRY/ms-notificaciones:latest
+                ports: ["3003:8080"]
+                environment:
+                  - AWS_REGION=us-east-1
+                  # TU CORREO:
+                  - EMAIL_REMITENTE=juanpablo.conquistador@gmail.com
+                  # Modo Simulación (cámbialo a false si logras arreglar permisos SES)
+                  - SIMULATE_EMAIL=true
+                  - ENVIRONMENT=PROD
+                  - SERVICE_NAME=NotificacionesService
+            EOF
+            
+            # 5. Desplegar
+            docker compose down || true
+            docker compose pull
+            docker compose up -d
