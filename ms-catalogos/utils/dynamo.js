@@ -60,14 +60,18 @@ export const checkIfDomicilioExists = async (clienteId, tipoDireccion) => {
   // Busca si el cliente ya tiene una dirección de ese TIPO (Facturación/Envío)
   const { Items } = await db.send(new ScanCommand({
     TableName: TABLE_DOMICILIOS,
-    FilterExpression: "clienteId = :cId AND tipoDireccion = :tDir",
+    FilterExpression: "#clienteId = :cId AND #tipoDireccion = :tDir",
+    ExpressionAttributeNames: {
+      "#clienteId": "clienteId",
+      "#tipoDireccion": "tipoDireccion"
+    },
     ExpressionAttributeValues: {
       ":cId": clienteId,
       ":tDir": tipoDireccion
     },
     Limit: 1
   }));
-  return Items[0];
+  return Items?.[0];
 };
 
 // =======================================================
