@@ -6,12 +6,12 @@ import {
   obtenerProducto,
   obtenerDomicilio,
 } from "../utils/dynamo.js";
-import { uploadFile, updateMetadata, getFile, getMetadata } from "../utils/s3.js"; // IMPORTACIÓN CORREGIDA
-import { enviarNotificacion } from "../utils/sns.js"; // Usamos la función original del usuario
+import { uploadFile, updateMetadata, getFile, getMetadata } from "../utils/s3.js";
+import { enviarNotificacion } from "../utils/sns.js"; // <-- FIX: Importa el nombre que SÍ tiene el módulo
 import { generarID } from "../utils/id.js";
-import { generarPDF } from "../utils/pdf_generator.js";
+import { generarPDF } from "../utils/pdf_genrator.js";
 
-const BUCKET = "examen-2-745730"; // Usamos el bucket del usuario
+const BUCKET = "examen-2-745730"; 
 
 const CAMPOS_VENTA = [
   "cliente",
@@ -79,7 +79,7 @@ const coreVentasHandler = async (event) => {
                 return { statusCode: 404, body: "Cliente o Domicilio(s) no encontrados." };
             }
 
-            // 2. Procesar cada item y calcular subtotal
+            // 2. Procesar cada item y calcular subtotal (Multi-producto)
             for (const item of body.items) {
                 const producto = await obtenerProducto(item.productoId);
                 if (!producto) {
@@ -104,11 +104,11 @@ const coreVentasHandler = async (event) => {
                     productoId: item.productoId,
                     cantidad: item.cantidad,
                     precioUnitario: producto.precioBase,
-                    importe: impuestos // Este campo es confuso, pero guardaremos el valor del impuesto general por nota
+                    importe: impuestos
                 });
             }
             
-            const totalVenta = subtotalProductos + impuestos;
+            const totalVenta = subtotalProductos + impuestos; // Cálculo con IVA/Impuestos
 
             // 4. Guardar Nota principal
             const nuevaNota = {
@@ -136,19 +136,18 @@ const coreVentasHandler = async (event) => {
             const key = `${clienteData.rfc}/${folio}.pdf`;
             await uploadFile(BUCKET, key, pdfBuffer);
 
-            // 6. Notificar (SNS) - FIX AQUI
-            // Obtenemos el host y puerto de la petición Express/HTTP (debería ser 3.239.55.131:3002)
+            // 6. Notificar (SNS) - URL CORREGIDA
+            // La IP la obtendremos del host de la petición.
             const host = event.get('host') || '3.239.55.131:3002'; 
-            const rutaDescarga = `http://${host}/ventas/${notaId}`; // URL CORREGIDA
+            const rutaDescarga = `http://${host}/ventas/${notaId}`; 
 
-            // Usamos la función original del usuario
-            await enviarNotificacion(clienteData.email, folio, rutaDescarga); 
+            await enviarNotificacion(clienteData.email, folio, rutaDescarga); // <-- LLAMADA CORRECTA
 
             return { statusCode: 201, body: JSON.stringify({ notaId, folio, subtotal: subtotalProductos, impuestos: impuestos, total: totalVenta, mensaje: "Nota de venta procesada." }) };
         }
 
       case "GET": {
-        // Lógica de descarga (queda igual)
+        // Lógica de descarga (se mantiene)
         if (!notaIdParam) return { statusCode: 400, body: "ID requerido" };
 
         const notaDescarga = await obtenerNotaVenta(notaIdParam);
@@ -160,7 +159,7 @@ const coreVentasHandler = async (event) => {
 
         const downloadKey = `${rfcDescarga}/${notaDescarga.folio}.pdf`;
         const archivo = await getFile(BUCKET, downloadKey);
-        const metadataActual = {}; // No usamos getMetadata aquí para evitar el error de importación inicial
+        const metadataActual = {}; 
 
         await updateMetadata(BUCKET, downloadKey, {
           ...metadataActual,

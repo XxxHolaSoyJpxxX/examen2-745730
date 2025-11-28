@@ -2,23 +2,31 @@ import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
 
 const snsClient = new SNSClient({ region: "us-east-1" });
 // Usamos el ARN de tu tema Estándar (corregido en la conversación)
-const TOPIC_ARN = "arn:aws:sns:us-east-1:187758670772:NotificacionesVentas";
+const TOPIC_ARN = "arn:aws:sns:us-east-1:187758670772:NotificacionesVentas"; 
 
 
-export const publicarEvento = async (mensaje) => {
+export const enviarNotificacion = async (email, folio, ruta) => {
   try {
-    // SNS usa JSON para enviar datos estructurados. El mensaje ya es un objeto JSON
+    // El mensaje ahora debe ser el objeto que el MS-Notificaciones espera (JSON)
+    const mensaje = {
+        tipo: "VENTA_CREADA",
+        email: email,
+        folio: folio,
+        ruta: ruta 
+    };
+    
     const command = new PublishCommand({
       TopicArn: TOPIC_ARN,
-      Message: JSON.stringify(mensaje),
+      Message: JSON.stringify(mensaje), // Enviamos el JSON
       MessageAttributes: {
          "tipo": { DataType: "String", StringValue: "VENTA_CREADA" }
       }
     });
+    
     const response = await snsClient.send(command);
-    console.log("Evento publicado en SNS. MessageId:", response.MessageId);
+    console.log("Notificación enviada a SNS. MessageId:", response.MessageId);
     return response;
   } catch (error) {
-    console.error("Error al publicar evento en SNS:", error);
+    console.error("Error al enviar notificación:", error);
   }
 };
