@@ -9,7 +9,7 @@ import {
 import { uploadFile, updateMetadata, getFile, getMetadata } from "../utils/s3.js";
 import { enviarNotificacion } from "../utils/sns.js"; // <-- FIX: Importa el nombre que SÍ tiene el módulo
 import { generarID } from "../utils/id.js";
-import { generarPDF } from "../utils/pdf_genrator.js";
+import { generarPDF } from "../utils/pdf_generator.js";
 
 const BUCKET = "examen-2-745730"; 
 
