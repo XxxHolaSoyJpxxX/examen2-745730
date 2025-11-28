@@ -9,7 +9,7 @@ import {
 import { uploadFile, updateMetadata, getFile } from "../utils/s3.js";
 import { publicarEvento } from "../utils/sns.js";
 import { generarID } from "../utils/id.js";
-import { generarPDF } from "../utils/pdf_genrator.js";
+import { generarPDF } from "../utils/pdf_generator.js";
 
 // Usamos process.env para el bucket (Factor III: Configuración)
 const BUCKET = process.env.BUCKET_NAME || "examen-2-745730";
