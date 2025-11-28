@@ -1,145 +1,44 @@
-# 🧪 Pruebas de Integración --- Sistema de Ventas Distribuido
+# Repositorio
 
-## 🔧 Configuración Global (Postman)
+https://github.com/XxxHolaSoyJpxxX/examen2-745730.git
 
-**Header recomendado:**
+# Factores cubiertos durante el desarrollo
 
-    Content-Type: application/json
+## Factor I -- Código base
 
-------------------------------------------------------------------------
+Separé el código en tres partes: **Catálogos**, **Ventas** y
+**Notificaciones**. Cada una funciona por su cuenta 
 
-## 1️⃣ Crear Cliente (Catálogos)
+## Factor V/VIII/IX -- Build, procesos y desechabilidad
 
-**Título:** Registrar un nuevo cliente en la BD\
-**Método:** `POST`\
-**URL:** `http://3.239.55.131:3001/clientes`
+Aproveché **Docker** para separar la etapa de compilación del arranque.
+Si un contenedor de Ventas se vuelve lento, lo apago y levanto otro. La
+idea es que los contenedores sean desechables.
 
-**Body (JSON):**
+## Factor XI -- Logs
 
-``` json
-{
-  "razonSocial": "Empresa de Prueba SA de CV",
-  "nombreComercial": "Mi Empresa",
-  "rfc": "XAXX010101000",
-  "email": "juanpablo.conquistador@gmail.com",
-  "telefono": "5512345678"
-}
-```
-
-**Expected Result:** - `201 Created` - JSON con un campo `"id"` (ej:
-`cli-a1b2c3...`)
-
-> 📝 **NOTA:** Copia este ID.
+En lugar de manejar logs como texto plano, la aplicación genera eventos
+**EMF** para enviarlos a **CloudWatch**, lo que permite revisar métricas
+y salud del sistema.
 
 ------------------------------------------------------------------------
 
-## 2️⃣ Crear Producto (Catálogos)
+# Retos al separar las aplicaciones
 
-**Título:** Registrar un producto para vender\
-**Método:** `POST`\
-**URL:** `http://3.239.55.131:3001/productos`
-
-**Body (JSON):**
-
-``` json
-{
-  "nombre": "Monitor 4K Ultra",
-  "unidadMedida": "Pieza",
-  "precioBase": 5000
-}
-```
-
-**Expected Result:** - `201 Created` - JSON con un campo `"id"` (ej:
-`prod-x9y8z7...`)
-
-> 📝 **NOTA:** Copia este ID.
+Separarlas fue sencillo porque ya había trabajado algo similar;
+básicamente dividí el proyecto en bloques.\
+Lo complicado fue el **build**. Al inicio pensé usar varias Lambdas,
+pero terminé usando tres contenedores. Ahí tuve la mayoría de fallas,
+casi todas por errores míos al separar el código. JavaScript deja pasar
+todo sin avisar; por eso prefiero TypeScript, pero este proyecto venía
+en JS.
 
 ------------------------------------------------------------------------
 
-## 3️⃣ Crear Domicilio de Facturación (Catálogos)
+# Tarea administrativa recomendada
 
-**Título:** Asignar dirección al cliente\
-**Método:** `POST`\
-**URL:** `http://3.239.55.131:3001/domicilios`
-
-**Body (JSON):**\
-*(Sustituye `"PEGA_AQUI_ID_CLIENTE"` con el ID obtenido en el paso 1)*
-
-``` json
-{
-  "clienteId": "PEGA_AQUI_ID_CLIENTE",
-  "domicilio": "Calle Falsa 123",
-  "colonia": "Centro",
-  "municipio": "Guadalajara",
-  "estado": "Jalisco",
-  "tipoDireccion": "FACTURACIÓN"
-}
-```
-
-**Expected Result:** - `201 Created` - JSON con un campo `"id"`
-
-> 📝 **NOTA:** Guarda este ID como **ID_DOMICILIO_FACTURACION**.
-
-------------------------------------------------------------------------
-
-## 4️⃣ Crear Domicilio de Envío (Catálogos)
-
-**Título:** Asignar dirección de envío\
-**Método:** `POST`\
-**URL:** `http://3.239.55.131:3001/domicilios`
-
-**Body (JSON):**\
-*(Sustituye `"PEGA_AQUI_ID_CLIENTE"` con el ID obtenido en el paso 1)*
-
-``` json
-{
-  "clienteId": "PEGA_AQUI_ID_CLIENTE",
-  "domicilio": "Av Siempre Viva 742",
-  "colonia": "Norte",
-  "municipio": "Zapopan",
-  "estado": "Jalisco",
-  "tipoDireccion": "ENVÍO"
-}
-```
-
-**Expected Result:** - `201 Created` - JSON con un campo `"id"`
-
-> 📝 **NOTA:** Guarda este ID como **ID_DOMICILIO_ENVIO**.
-
-------------------------------------------------------------------------
-
-## 5️⃣ Generar Venta (Ventas)
-
-**Título:** Procesar venta, generar PDF y notificar\
-**Método:** `POST`\
-**URL:** `http://3.239.55.131:3002/ventas`
-
-**Body (JSON):**\
-*(Aquí juntas todos los IDs que anotaste)*
-
-``` json
-{
-  "cliente": "PEGA_AQUI_ID_CLIENTE",
-  "domicilioFacturacion": "PEGA_AQUI_ID_DOMICILIO_FACTURACION",
-  "domicilioEnvio": "PEGA_AQUI_ID_DOMICILIO_ENVIO",
-  "items": [
-    { "productoId": "PEGA_AQUI_ID_PRODUCTO_1", "cantidad": 2 },
-    { "productoId": "PEGA_AQUI_ID_PRODUCTO_2", "cantidad": 1 },
-    { "productoId": "PEGA_AQUI_ID_PRODUCTO_3", "cantidad": 5 }
-  ],
-  "importe": 80.50
-}
-```
-
-**Expected Result:**
-
-``` json
-{
-  "notaId": "nv_.....",
-  "mensaje": "Nota creada"
-}
-```
-
-> 📝 **NOTA:** Copia el `notaId`.\
-> En este momento se envió internamente la notificación al módulo
-> **3003**.
+1.  **Respaldo de DynamoDB**: Si esta fuera una app real, perder la
+    información la volvería inutilizable.
+2.  **Mover del S3 las notas de más de 5 años** a un almacenamiento más
+    barato o local. No las borraría, solo las sacaría de S3 para evitar
+    ocupar espacio innecesario.
