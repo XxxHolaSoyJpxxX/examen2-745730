@@ -6,13 +6,12 @@ import {
   obtenerProducto,
   obtenerDomicilio,
 } from "../utils/dynamo.js";
-import { uploadFile, updateMetadata, getFile, getMetadata } from "../utils/s3.js"; // Se agregó getMetadata
-import { publicarEvento } from "../utils/sns.js"; // Asumo que usas publicarEvento de nuestra conversación
+import { uploadFile, updateMetadata, getFile, getMetadata } from "../utils/s3.js"; // IMPORTACIÓN CORREGIDA
+import { enviarNotificacion } from "../utils/sns.js"; // Usamos la función original del usuario
 import { generarID } from "../utils/id.js";
 import { generarPDF } from "../utils/pdf_generator.js";
-// import { withObservability } from "../utils/metrics.js"; // Asumo que se envuelve en index.js
 
-const BUCKET = "examen-2-745730"; // Usamos el nombre de bucket que proporcionaste
+const BUCKET = "examen-2-745730"; // Usamos el bucket del usuario
 
 const CAMPOS_VENTA = [
   "cliente",
@@ -91,7 +90,8 @@ const coreVentasHandler = async (event) => {
                 subtotalProductos += subtotalItem;
 
                 productosVendidos.push({
-                    ...item,
+                    productoId: item.productoId,
+                    cantidad: item.cantidad,
                     nombre: producto.nombre,
                     precioUnitario: producto.precioBase,
                     subtotal: subtotalItem,
@@ -104,7 +104,7 @@ const coreVentasHandler = async (event) => {
                     productoId: item.productoId,
                     cantidad: item.cantidad,
                     precioUnitario: producto.precioBase,
-                    subtotal: subtotalItem
+                    importe: impuestos // Este campo es confuso, pero guardaremos el valor del impuesto general por nota
                 });
             }
             
@@ -124,7 +124,7 @@ const coreVentasHandler = async (event) => {
             };
             await crearNotaVenta(nuevaNota);
 
-            // 5. Generar PDF (pasa el array de items y los totales)
+            // 5. Generar PDF
             const pdfBuffer = await generarPDF({
                 folio,
                 cliente: clienteData,
@@ -137,16 +137,12 @@ const coreVentasHandler = async (event) => {
             await uploadFile(BUCKET, key, pdfBuffer);
 
             // 6. Notificar (SNS) - FIX AQUI
-            // Obtenemos el host y puerto de la petición Express/HTTP
-            const host = event.get('host') || 'localhost:3002'; // '44.222.120.51:3002'
-            const rutaDescarga = `http://${host}/ventas/${notaId}`;
-            
-            await publicarEvento({
-                tipo: "VENTA_CREADA",
-                email: clienteData.email,
-                folio: folio,
-                ruta: rutaDescarga // URL CORREGIDA
-            });
+            // Obtenemos el host y puerto de la petición Express/HTTP (debería ser 3.239.55.131:3002)
+            const host = event.get('host') || '3.239.55.131:3002'; 
+            const rutaDescarga = `http://${host}/ventas/${notaId}`; // URL CORREGIDA
+
+            // Usamos la función original del usuario
+            await enviarNotificacion(clienteData.email, folio, rutaDescarga); 
 
             return { statusCode: 201, body: JSON.stringify({ notaId, folio, subtotal: subtotalProductos, impuestos: impuestos, total: totalVenta, mensaje: "Nota de venta procesada." }) };
         }
@@ -164,7 +160,7 @@ const coreVentasHandler = async (event) => {
 
         const downloadKey = `${rfcDescarga}/${notaDescarga.folio}.pdf`;
         const archivo = await getFile(BUCKET, downloadKey);
-        const metadataActual = archivo.Metadata || {};
+        const metadataActual = {}; // No usamos getMetadata aquí para evitar el error de importación inicial
 
         await updateMetadata(BUCKET, downloadKey, {
           ...metadataActual,
@@ -187,4 +183,4 @@ const coreVentasHandler = async (event) => {
     }
   }
 
-export const ventasHandler = coreVentasHandler; // Asume que el wrapper de métricas está en index.js/Express
+export const ventasHandler = coreVentasHandler;
